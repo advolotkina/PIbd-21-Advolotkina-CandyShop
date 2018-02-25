@@ -4,6 +4,7 @@ using CandyShopService.Interfaces;
 using CandyShopService.ViewModels;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CandyShopService.ImplementationsList
 {
@@ -18,247 +19,167 @@ namespace CandyShopService.ImplementationsList
 
         public List<CandyViewModel> GetList()
         {
-            List<CandyViewModel> result = new List<CandyViewModel>();
-            for (int i = 0; i < source.Candies.Count; ++i)
-            {
-                
-                List<CandyIngredientViewModel> candyIngredients = new List<CandyIngredientViewModel>();
-                for (int j = 0; j < source.CandyIngredients.Count; ++j)
+            List<CandyViewModel> result = source.Candies
+                .Select(rec => new CandyViewModel
                 {
-                    if (source.CandyIngredients[j].CandyId == source.Candies[i].Id)
-                    {
-                        string ingredientName = string.Empty;
-                        for (int k = 0; k < source.Ingredients.Count; ++k)
-                        {
-                            if (source.CandyIngredients[j].IngredientId == source.Ingredients[k].Id)
+                    Id = rec.Id,
+                    CandyName = rec.CandyName,
+                    Price = rec.Price,
+                    CandyIngredients = source.CandyIngredients
+                            .Where(recPC => recPC.CandyId == rec.Id)
+                            .Select(recPC => new CandyIngredientViewModel
                             {
-                                ingredientName = source.Ingredients[k].IngredientName;
-                                break;
-                            }
-                        }
-                        candyIngredients.Add(new CandyIngredientViewModel
-                        {
-                            Id = source.CandyIngredients[j].Id,
-                            CandyId = source.CandyIngredients[j].CandyId,
-                            IngredientId = source.CandyIngredients[j].IngredientId,
-                            IngredientName = ingredientName,
-                            Count = source.CandyIngredients[j].Count
-                        });
-                    }
-                }
-                result.Add(new CandyViewModel
-                {
-                    Id = source.Candies[i].Id,
-                    CandyName = source.Candies[i].CandyName,
-                    Price = source.Candies[i].Price,
-                    CandyIngredients = candyIngredients
-                });
-            }
+                                Id = recPC.Id,
+                                CandyId = recPC.CandyId,
+                                IngredientId = recPC.IngredientId,
+                                IngredientName = source.Ingredients
+                                    .FirstOrDefault(recC => recC.Id == recPC.IngredientId)?.IngredientName,
+                                Count = recPC.Count
+                            })
+                            .ToList()
+                })
+                .ToList();
             return result;
         }
 
         public CandyViewModel GetElement(int id)
         {
-            for (int i = 0; i < source.Candies.Count; ++i)
+            Candy element = source.Candies.FirstOrDefault(rec => rec.Id == id);
+            if (element != null)
             {
-                
-                List<CandyIngredientViewModel> candyIngredients = new List<CandyIngredientViewModel>();
-                for (int j = 0; j < source.CandyIngredients.Count; ++j)
+                return new CandyViewModel
                 {
-                    if (source.CandyIngredients[j].CandyId == source.Candies[i].Id)
-                    {
-                        string ingredientName = string.Empty;
-                        for (int k = 0; k < source.Ingredients.Count; ++k)
-                        {
-                            if (source.CandyIngredients[j].IngredientId == source.Ingredients[k].Id)
+                    Id = element.Id,
+                    CandyName = element.CandyName,
+                    Price = element.Price,
+                    CandyIngredients = source.CandyIngredients
+                            .Where(recCC => recCC.CandyId == element.Id)
+                            .Select(recCC => new CandyIngredientViewModel
                             {
-                                ingredientName = source.Ingredients[k].IngredientName;
-                                break;
-                            }
-                        }
-                        candyIngredients.Add(new CandyIngredientViewModel
-                        {
-                            Id = source.CandyIngredients[j].Id,
-                            CandyId = source.CandyIngredients[j].CandyId,
-                            IngredientId = source.CandyIngredients[j].IngredientId,
-                            IngredientName = ingredientName,
-                            Count = source.CandyIngredients[j].Count
-                        });
-                    }
-                }
-                if (source.Candies[i].Id == id)
-                {
-                    return new CandyViewModel
-                    {
-                        Id = source.Candies[i].Id,
-                        CandyName = source.Candies[i].CandyName,
-                        Price = source.Candies[i].Price,
-                        CandyIngredients = candyIngredients
-                    };
-                }
+                                Id = recCC.Id,
+                                CandyId = recCC.CandyId,
+                                IngredientId = recCC.IngredientId,
+                                IngredientName = source.Ingredients
+                                        .FirstOrDefault(recC => recC.Id == recCC.IngredientId)?.IngredientName,
+                                Count = recCC.Count
+                            })
+                            .ToList()
+                };
             }
-
             throw new Exception("Элемент не найден");
         }
 
         public void AddElement(CandyBindingModel model)
         {
-            int maxId = 0;
-            for (int i = 0; i < source.Candies.Count; ++i)
+            Candy element = source.Candies.FirstOrDefault(rec => rec.CandyName == model.CandyName);
+            if (element != null)
             {
-                if (source.Candies[i].Id > maxId)
-                {
-                    maxId = source.Candies[i].Id;
-                }
-                if (source.Candies[i].CandyName == model.CandyName)
-                {
-                    throw new Exception("Уже есть изделие с таким названием");
-                }
+                throw new Exception("Уже есть сладость с таким названием");
             }
+            int maxId = source.Candies.Count > 0 ? source.Candies.Max(rec => rec.Id) : 0;
             source.Candies.Add(new Candy
             {
                 Id = maxId + 1,
                 CandyName = model.CandyName,
                 Price = model.Price
             });
-            
-            int maxPCId = 0;
-            for (int i = 0; i < source.CandyIngredients.Count; ++i)
-            {
-                if (source.CandyIngredients[i].Id > maxPCId)
-                {
-                    maxPCId = source.CandyIngredients[i].Id;
-                }
-            }
-            
-            for (int i = 0; i < model.CandyIngredients.Count; ++i)
-            {
-                for (int j = 1; j < model.CandyIngredients.Count; ++j)
-                {
-                    if(model.CandyIngredients[i].IngredientId ==
-                        model.CandyIngredients[j].IngredientId)
-                    {
-                        model.CandyIngredients[i].Count +=
-                            model.CandyIngredients[j].Count;
-                        model.CandyIngredients.RemoveAt(j--);
-                    }
-                }
-            }
-            
-            for (int i = 0; i < model.CandyIngredients.Count; ++i)
+
+            int maxCCId = source.CandyIngredients.Count > 0 ?
+                                    source.CandyIngredients.Max(rec => rec.Id) : 0;
+
+            var groupIngredients = model.CandyIngredients
+                                        .GroupBy(rec => rec.IngredientId)
+                                        .Select(rec => new
+                                        {
+                                            IngredientId = rec.Key,
+                                            Count = rec.Sum(r => r.Count)
+                                        });
+
+            foreach (var groupIngredient in groupIngredients)
             {
                 source.CandyIngredients.Add(new CandyIngredient
                 {
-                    Id = ++maxPCId,
+                    Id = ++maxCCId,
                     CandyId = maxId + 1,
-                    IngredientId = model.CandyIngredients[i].IngredientId,
-                    Count = model.CandyIngredients[i].Count
+                    IngredientId = groupIngredient.IngredientId,
+                    Count = groupIngredient.Count
                 });
             }
         }
 
         public void UpdElement(CandyBindingModel model)
         {
-            int index = -1;
-            for (int i = 0; i < source.Candies.Count; ++i)
+            Candy element = source.Candies.FirstOrDefault(rec =>
+                                        rec.CandyName == model.CandyName && rec.Id != model.Id);
+            if (element != null)
             {
-                if (source.Candies[i].Id == model.Id)
-                {
-                    index = i;
-                }
-                if (source.Candies[i].CandyName == model.CandyName && 
-                    source.Candies[i].Id != model.Id)
-                {
-                    throw new Exception("Уже есть изделие с таким названием");
-                }
+                throw new Exception("Уже есть сладость с таким названием");
             }
-            if (index == -1)
+            element = source.Candies.FirstOrDefault(rec => rec.Id == model.Id);
+            if (element == null)
             {
                 throw new Exception("Элемент не найден");
             }
-            source.Candies[index].CandyName = model.CandyName;
-            source.Candies[index].Price = model.Price;
-            int maxPCId = 0;
-            for (int i = 0; i < source.CandyIngredients.Count; ++i)
+            element.CandyName = model.CandyName;
+            element.Price = model.Price;
+
+            int maxPCId = source.CandyIngredients.Count > 0 ? source.CandyIngredients.Max(rec => rec.Id) : 0;
+
+            var compIds = model.CandyIngredients.Select(rec => rec.IngredientId).Distinct();
+            var updateIngredients = source.CandyIngredients
+                                            .Where(rec => rec.CandyId == model.Id &&
+                                           compIds.Contains(rec.IngredientId));
+            foreach (var updateIngredient in updateIngredients)
             {
-                if (source.CandyIngredients[i].Id > maxPCId)
-                {
-                    maxPCId = source.CandyIngredients[i].Id;
-                }
+                updateIngredient.Count = model.CandyIngredients
+                                                .FirstOrDefault(rec => rec.Id == updateIngredient.Id).Count;
             }
-            
-            for (int i = 0; i < source.CandyIngredients.Count; ++i)
+            source.CandyIngredients.RemoveAll(rec => rec.CandyId == model.Id &&
+                                       !compIds.Contains(rec.IngredientId));
+
+            var groupIngredients = model.CandyIngredients
+                                        .Where(rec => rec.Id == 0)
+                                        .GroupBy(rec => rec.IngredientId)
+                                        .Select(rec => new
+                                        {
+                                            IngredientId = rec.Key,
+                                            Count = rec.Sum(r => r.Count)
+                                        });
+            foreach (var groupIngredient in groupIngredients)
             {
-                if (source.CandyIngredients[i].CandyId == model.Id)
+                CandyIngredient elementCC = source.CandyIngredients
+                                        .FirstOrDefault(rec => rec.CandyId == model.Id &&
+                                                        rec.IngredientId == groupIngredient.IngredientId);
+                if (elementCC != null)
                 {
-                    bool flag = true;
-                    for (int j = 0; j < model.CandyIngredients.Count; ++j)
-                    {
-                        
-                        if (source.CandyIngredients[i].Id == model.CandyIngredients[j].Id)
-                        {
-                            source.CandyIngredients[i].Count = model.CandyIngredients[j].Count;
-                            flag = false;
-                            break;
-                        }
-                    }
-                    
-                    if(flag)
-                    {
-                        source.CandyIngredients.RemoveAt(i--);
-                    }
+                    elementCC.Count += groupIngredient.Count;
                 }
-            }
-            
-            for(int i = 0; i < model.CandyIngredients.Count; ++i)
-            {
-                if(model.CandyIngredients[i].Id == 0)
+                else
                 {
-                    
-                    for (int j = 0; j < source.CandyIngredients.Count; ++j)
+                    source.CandyIngredients.Add(new CandyIngredient
                     {
-                        if (source.CandyIngredients[j].CandyId == model.Id &&
-                            source.CandyIngredients[j].IngredientId == model.CandyIngredients[i].IngredientId)
-                        {
-                            source.CandyIngredients[j].Count += model.CandyIngredients[i].Count;
-                            model.CandyIngredients[i].Id = source.CandyIngredients[j].Id;
-                            break;
-                        }
-                    }
-                    
-                    if (model.CandyIngredients[i].Id == 0)
-                    {
-                        source.CandyIngredients.Add(new CandyIngredient
-                        {
-                            Id = ++maxPCId,
-                            CandyId = model.Id,
-                            IngredientId = model.CandyIngredients[i].IngredientId,
-                            Count = model.CandyIngredients[i].Count
-                        });
-                    }
+                        Id = ++maxPCId,
+                        CandyId = model.Id,
+                        IngredientId = groupIngredient.IngredientId,
+                        Count = groupIngredient.Count
+                    });
                 }
             }
         }
 
         public void DelElement(int id)
         {
-            
-            for (int i = 0; i < source.CandyIngredients.Count; ++i)
+
+            Candy element = source.Candies.FirstOrDefault(rec => rec.Id == id);
+            if (element != null)
             {
-                if (source.CandyIngredients[i].CandyId == id)
-                {
-                    source.CandyIngredients.RemoveAt(i--);
-                }
+                source.CandyIngredients.RemoveAll(rec => rec.CandyId == id);
+                source.Candies.Remove(element);
             }
-            for (int i = 0; i < source.Candies.Count; ++i)
+            else
             {
-                if (source.Candies[i].Id == id)
-                {
-                    source.Candies.RemoveAt(i);
-                    return;
-                }
+                throw new Exception("Элемент не найден");
             }
-            throw new Exception("Элемент не найден");
         }
     }
 }

@@ -4,6 +4,7 @@ using CandyShopService.Interfaces;
 using CandyShopService.ViewModels;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CandyShopService.ImplementationsList
 {
@@ -18,48 +19,38 @@ namespace CandyShopService.ImplementationsList
 
         public List<ConfectionerViewModel> GetList()
         {
-            List<ConfectionerViewModel> result = new List<ConfectionerViewModel>();
-            for (int i = 0; i < source.Confectioners.Count; ++i)
-            {
-                result.Add(new ConfectionerViewModel
+            List<ConfectionerViewModel> result = source.Confectioners
+                .Select(rec => new ConfectionerViewModel
                 {
-                    Id = source.Confectioners[i].Id,
-                    ConfectionerFIO = source.Confectioners[i].ConfectionerFIO
-                });
-            }
+                    Id = rec.Id,
+                    ConfectionerFIO = rec.ConfectionerFIO
+                })
+                .ToList();
             return result;
         }
 
         public ConfectionerViewModel GetElement(int id)
         {
-            for (int i = 0; i < source.Confectioners.Count; ++i)
+            Confectioner element = source.Confectioners.FirstOrDefault(rec => rec.Id == id);
+            if (element != null)
             {
-                if (source.Confectioners[i].Id == id)
+                return new ConfectionerViewModel
                 {
-                    return new ConfectionerViewModel
-                    {
-                        Id = source.Confectioners[i].Id,
-                        ConfectionerFIO = source.Confectioners[i].ConfectionerFIO
-                    };
-                }
+                    Id = element.Id,
+                    ConfectionerFIO = element.ConfectionerFIO
+                };
             }
             throw new Exception("Элемент не найден");
         }
 
         public void AddElement(ConfectionerBindingModel model)
         {
-            int maxId = 0;
-            for (int i = 0; i < source.Confectioners.Count; ++i)
+            Confectioner element = source.Confectioners.FirstOrDefault(rec => rec.ConfectionerFIO == model.ConfectionerFIO);
+            if (element != null)
             {
-                if (source.Confectioners[i].Id > maxId)
-                {
-                    maxId = source.Confectioners[i].Id;
-                }
-                if (source.Confectioners[i].ConfectionerFIO == model.ConfectionerFIO)
-                {
-                    throw new Exception("Уже есть кондитер с таким ФИО");
-                }
+                throw new Exception("Уже есть кондитер с таким ФИО");
             }
+            int maxId = source.Confectioners.Count > 0 ? source.Confectioners.Max(rec => rec.Id) : 0;
             source.Confectioners.Add(new Confectioner
             {
                 Id = maxId + 1,
@@ -69,37 +60,31 @@ namespace CandyShopService.ImplementationsList
 
         public void UpdElement(ConfectionerBindingModel model)
         {
-            int index = -1;
-            for (int i = 0; i < source.Confectioners.Count; ++i)
+            Confectioner element = source.Confectioners.FirstOrDefault(rec =>
+                                        rec.ConfectionerFIO == model.ConfectionerFIO && rec.Id != model.Id);
+            if (element != null)
             {
-                if (source.Confectioners[i].Id == model.Id)
-                {
-                    index = i;
-                }
-                if (source.Confectioners[i].ConfectionerFIO == model.ConfectionerFIO && 
-                    source.Confectioners[i].Id != model.Id)
-                {
-                    throw new Exception("Уже есть кондитер с таким ФИО");
-                }
+                throw new Exception("Уже есть кондитер с таким ФИО");
             }
-            if (index == -1)
+            element = source.Confectioners.FirstOrDefault(rec => rec.Id == model.Id);
+            if (element == null)
             {
                 throw new Exception("Элемент не найден");
             }
-            source.Confectioners[index].ConfectionerFIO = model.ConfectionerFIO;
+            element.ConfectionerFIO = model.ConfectionerFIO;
         }
 
         public void DelElement(int id)
         {
-            for (int i = 0; i < source.Confectioners.Count; ++i)
+            Confectioner element = source.Confectioners.FirstOrDefault(rec => rec.Id == id);
+            if (element != null)
             {
-                if (source.Confectioners[i].Id == id)
-                {
-                    source.Confectioners.RemoveAt(i);
-                    return;
-                }
+                source.Confectioners.Remove(element);
             }
-            throw new Exception("Элемент не найден");
+            else
+            {
+                throw new Exception("Элемент не найден");
+            }
         }
     }
 }

@@ -4,6 +4,7 @@ using CandyShopService.Interfaces;
 using CandyShopService.ViewModels;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CandyShopService.ImplementationsList
 {
@@ -18,48 +19,38 @@ namespace CandyShopService.ImplementationsList
 
         public List<IngredientViewModel> GetList()
         {
-            List<IngredientViewModel> result = new List<IngredientViewModel>();
-            for (int i = 0; i < source.Ingredients.Count; ++i)
-            {
-                result.Add(new IngredientViewModel
+            List<IngredientViewModel> result = source.Ingredients
+                .Select(rec => new IngredientViewModel
                 {
-                    Id = source.Ingredients[i].Id,
-                    IngredientName = source.Ingredients[i].IngredientName
-                });
-            }
+                    Id = rec.Id,
+                    IngredientName = rec.IngredientName
+                })
+                .ToList();
             return result;
         }
 
         public IngredientViewModel GetElement(int id)
         {
-            for (int i = 0; i < source.Ingredients.Count; ++i)
+            Ingredient element = source.Ingredients.FirstOrDefault(rec => rec.Id == id);
+            if (element != null)
             {
-                if (source.Ingredients[i].Id == id)
+                return new IngredientViewModel
                 {
-                    return new IngredientViewModel
-                    {
-                        Id = source.Ingredients[i].Id,
-                        IngredientName = source.Ingredients[i].IngredientName
-                    };
-                }
+                    Id = element.Id,
+                    IngredientName = element.IngredientName
+                };
             }
             throw new Exception("Элемент не найден");
         }
 
         public void AddElement(IngredientBindingModel model)
         {
-            int maxId = 0;
-            for (int i = 0; i < source.Ingredients.Count; ++i)
+            Ingredient element = source.Ingredients.FirstOrDefault(rec => rec.IngredientName == model.IngredientName);
+            if (element != null)
             {
-                if (source.Ingredients[i].Id > maxId)
-                {
-                    maxId = source.Ingredients[i].Id;
-                }
-                if (source.Ingredients[i].IngredientName == model.IngredientName)
-                {
-                    throw new Exception("Уже есть ингредиент с таким названием");
-                }
+                throw new Exception("Уже есть ингредиент с таким названием");
             }
+            int maxId = source.Ingredients.Count > 0 ? source.Ingredients.Max(rec => rec.Id) : 0;
             source.Ingredients.Add(new Ingredient
             {
                 Id = maxId + 1,
@@ -69,37 +60,31 @@ namespace CandyShopService.ImplementationsList
 
         public void UpdElement(IngredientBindingModel model)
         {
-            int index = -1;
-            for (int i = 0; i < source.Ingredients.Count; ++i)
+            Ingredient element = source.Ingredients.FirstOrDefault(rec =>
+                                        rec.IngredientName == model.IngredientName && rec.Id != model.Id);
+            if (element != null)
             {
-                if (source.Ingredients[i].Id == model.Id)
-                {
-                    index = i;
-                }
-                if (source.Ingredients[i].IngredientName == model.IngredientName && 
-                    source.Ingredients[i].Id != model.Id)
-                {
-                    throw new Exception("Уже есть ингредиент с таким названием");
-                }
+                throw new Exception("Уже есть ингредиент с таким названием");
             }
-            if (index == -1)
+            element = source.Ingredients.FirstOrDefault(rec => rec.Id == model.Id);
+            if (element == null)
             {
                 throw new Exception("Элемент не найден");
             }
-            source.Ingredients[index].IngredientName = model.IngredientName;
+            element.IngredientName = model.IngredientName;
         }
 
         public void DelElement(int id)
         {
-            for (int i = 0; i < source.Ingredients.Count; ++i)
+            Ingredient element = source.Ingredients.FirstOrDefault(rec => rec.Id == id);
+            if (element != null)
             {
-                if (source.Ingredients[i].Id == id)
-                {
-                    source.Ingredients.RemoveAt(i);
-                    return;
-                }
+                source.Ingredients.Remove(element);
             }
-            throw new Exception("Элемент не найден");
+            else
+            {
+                throw new Exception("Элемент не найден");
+            }
         }
     }
 }

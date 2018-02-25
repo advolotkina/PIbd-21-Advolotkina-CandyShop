@@ -4,6 +4,7 @@ using CandyShopService.Interfaces;
 using CandyShopService.ViewModels;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CandyShopService.ImplementationsList
 {
@@ -18,49 +19,41 @@ namespace CandyShopService.ImplementationsList
 
         public List<CustomerViewModel> GetList()
         {
-            List<CustomerViewModel> result = new List<CustomerViewModel>();
-            for (int i = 0; i < source.Customers.Count; ++i)
-            {
-                result.Add(new CustomerViewModel
+            List<CustomerViewModel> result = source.Customers
+                .Select(rec => new CustomerViewModel
                 {
-                    Id = source.Customers[i].Id,
-                    CustomerFIO = source.Customers[i].CustomerFIO
-                });
-            }
+                    Id = rec.Id,
+                    CustomerFIO = rec.CustomerFIO
+                })
+                .ToList();
             return result;
+
         }
 
         public CustomerViewModel GetElement(int id)
         {
-            for (int i = 0; i < source.Customers.Count; ++i)
+            Customer element = source.Customers.FirstOrDefault(rec => rec.Id == id);
+            if (element != null)
             {
-                if (source.Customers[i].Id == id)
+                return new CustomerViewModel
                 {
-                    return new CustomerViewModel
-                    {
-                        Id = source.Customers[i].Id,
-                        CustomerFIO = source.Customers[i].CustomerFIO
-                    };
-                }
+                    Id = element.Id,
+                    CustomerFIO = element.CustomerFIO
+                };
             }
             throw new Exception("Элемент не найден");
         }
 
         public void AddElement(CustomerBindingModel model)
         {
-            int maxId = 0;
-            for (int i = 0; i < source.Customers.Count; ++i)
+            Customer element = source.Customers.FirstOrDefault(rec => rec.CustomerFIO == model.CustomerFIO);
+            if (element != null)
             {
-                if (source.Customers[i].Id > maxId)
-                {
-                    maxId = source.Customers[i].Id;
-                }
-                if (source.Customers[i].CustomerFIO == model.CustomerFIO)
-                {
-                    throw new Exception("Уже есть клиент с таким ФИО");
-                }
+                throw new Exception("Уже есть покупатель с таким ФИО");
             }
-            source.Customers.Add(new Customer {
+            int maxId = source.Customers.Count > 0 ? source.Customers.Max(rec => rec.Id) : 0;
+            source.Customers.Add(new Customer
+            {
                 Id = maxId + 1,
                 CustomerFIO = model.CustomerFIO
             });
@@ -68,37 +61,31 @@ namespace CandyShopService.ImplementationsList
 
         public void UpdElement(CustomerBindingModel model)
         {
-            int index = -1;
-            for (int i = 0; i < source.Customers.Count; ++i)
+            Customer element = source.Customers.FirstOrDefault(rec =>
+                                    rec.CustomerFIO == model.CustomerFIO && rec.Id != model.Id);
+            if (element != null)
             {
-                if (source.Customers[i].Id == model.Id)
-                {
-                    index = i;
-                }
-                if (source.Customers[i].CustomerFIO == model.CustomerFIO && 
-                    source.Customers[i].Id != model.Id)
-                {
-                    throw new Exception("Уже есть клиент с таким ФИО");
-                }
+                throw new Exception("Уже есть покупатель с таким ФИО");
             }
-            if (index == -1)
+            element = source.Customers.FirstOrDefault(rec => rec.Id == model.Id);
+            if (element == null)
             {
                 throw new Exception("Элемент не найден");
             }
-            source.Customers[index].CustomerFIO = model.CustomerFIO;
+            element.CustomerFIO = model.CustomerFIO;
         }
 
         public void DelElement(int id)
         {
-            for (int i = 0; i < source.Customers.Count; ++i)
+            Customer element = source.Customers.FirstOrDefault(rec => rec.Id == id);
+            if (element != null)
             {
-                if (source.Customers[i].Id == id)
-                {
-                    source.Customers.RemoveAt(i);
-                    return;
-                }
+                source.Customers.Remove(element);
             }
-            throw new Exception("Элемент не найден");
+            else
+            {
+                throw new Exception("Элемент не найден");
+            }
         }
     }
 }
