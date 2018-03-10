@@ -21,5 +21,11 @@ namespace CandyShopModel
         public DateTime DateCreate { get; set; }
 
         public DateTime? DateImplement { get; set; }
+
+        public virtual Customer Customer { get; set; }
+
+        public virtual Candy Candy { get; set; }
+
+        public virtual Confectioner Confectioner { get; set; }
     }
 }
