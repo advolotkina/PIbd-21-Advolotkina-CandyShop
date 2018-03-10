@@ -4,6 +4,7 @@ using CandyShopService.Interfaces;
 using CandyShopService.ViewModels;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CandyShopService.ImplementationsList
 {
@@ -18,68 +19,32 @@ namespace CandyShopService.ImplementationsList
 
         public List<PurchaseOrderViewModel> GetList()
         {
-            List<PurchaseOrderViewModel> result = new List<PurchaseOrderViewModel>();
-            for (int i = 0; i < source.PurchaseOrders.Count; ++i)
-            {
-                string clientFIO = string.Empty;
-                for (int j = 0; j < source.Customers.Count; ++j)
+            List<PurchaseOrderViewModel> result = source.PurchaseOrders
+                .Select(rec => new PurchaseOrderViewModel
                 {
-                    if(source.Customers[j].Id == source.PurchaseOrders[i].CustomerId)
-                    {
-                        clientFIO = source.Customers[j].CustomerFIO;
-                        break;
-                    }
-                }
-                string productName = string.Empty;
-                for (int j = 0; j < source.Candies.Count; ++j)
-                {
-                    if (source.Candies[j].Id == source.PurchaseOrders[i].CandyId)
-                    {
-                        productName = source.Candies[j].CandyName;
-                        break;
-                    }
-                }
-                string implementerFIO = string.Empty;
-                if(source.PurchaseOrders[i].ConfectionerId.HasValue)
-                {
-                    for (int j = 0; j < source.Confectioners.Count; ++j)
-                    {
-                        if (source.Confectioners[j].Id == source.PurchaseOrders[i].ConfectionerId.Value)
-                        {
-                            implementerFIO = source.Confectioners[j].ConfectionerFIO;
-                            break;
-                        }
-                    }
-                }
-                result.Add(new PurchaseOrderViewModel
-                {
-                    Id = source.PurchaseOrders[i].Id,
-                    CustomerId = source.PurchaseOrders[i].CustomerId,
-                    CustomerFIO = clientFIO,
-                    CandyId = source.PurchaseOrders[i].CandyId,
-                    CandyName = productName,
-                    ConfectionerId = source.PurchaseOrders[i].ConfectionerId,
-                    ConfectionerName = implementerFIO,
-                    Count = source.PurchaseOrders[i].Count,
-                    Sum = source.PurchaseOrders[i].Sum,
-                    DateCreate = source.PurchaseOrders[i].DateCreate.ToLongDateString(),
-                    DateImplement = source.PurchaseOrders[i].DateImplement?.ToLongDateString(),
-                    Status = source.PurchaseOrders[i].Status.ToString()
-                });
-            }
+                    Id = rec.Id,
+                    CustomerId = rec.CustomerId,
+                    CandyId = rec.CandyId,
+                    ConfectionerId = rec.ConfectionerId,
+                    DateCreate = rec.DateCreate.ToLongDateString(),
+                    DateImplement = rec.DateImplement?.ToLongDateString(),
+                    Status = rec.Status.ToString(),
+                    Count = rec.Count,
+                    Sum = rec.Sum,
+                    CustomerFIO = source.Customers
+                                    .FirstOrDefault(recC => recC.Id == rec.CustomerId)?.CustomerFIO,
+                    CandyName = source.Candies
+                                    .FirstOrDefault(recP => recP.Id == rec.CandyId)?.CandyName,
+                    ConfectionerName = source.Confectioners
+                                    .FirstOrDefault(recI => recI.Id == rec.ConfectionerId)?.ConfectionerFIO
+                })
+                .ToList();
             return result;
         }
 
         public void CreatePurchaseOrder(PurchaseOrderBindingModel model)
         {
-            int maxId = 0;
-            for (int i = 0; i < source.PurchaseOrders.Count; ++i)
-            {
-                if (source.PurchaseOrders[i].Id > maxId)
-                {
-                    maxId = source.Customers[i].Id;
-                }
-            }
+            int maxId = source.PurchaseOrders.Count > 0 ? source.PurchaseOrders.Max(rec => rec.Id) : 0;
             source.PurchaseOrders.Add(new PurchaseOrder
             {
                 Id = maxId + 1,
@@ -94,134 +59,92 @@ namespace CandyShopService.ImplementationsList
 
         public void TakePurchaseOrderInWork(PurchaseOrderBindingModel model)
         {
-            int index = -1;
-            for (int i = 0; i < source.PurchaseOrders.Count; ++i)
-            {
-                if (source.PurchaseOrders[i].Id == model.Id)
-                {
-                    index = i;
-                    break;
-                }
-            }
-            if (index == -1)
+            PurchaseOrder element = source.PurchaseOrders.FirstOrDefault(rec => rec.Id == model.Id);
+            if (element == null)
             {
                 throw new Exception("Элемент не найден");
             }
-            
-            for(int i = 0; i < source.CandyIngredients.Count; ++i)
+
+            var candyIngredients = source.CandyIngredients.Where(rec => rec.CandyId == element.CandyId);
+            foreach (var candyIngredient in candyIngredients)
             {
-                if(source.CandyIngredients[i].CandyId == source.PurchaseOrders[index].CandyId)
+                int countOnWarehouses = source.WarehouseIngredients
+                                            .Where(rec => rec.IngredientId == candyIngredient.IngredientId)
+                                            .Sum(rec => rec.Count);
+                if (countOnWarehouses < candyIngredient.Count * element.Count)
                 {
-                    int countOnStocks = 0;
-                    for(int j = 0; j < source.WarehouseIngredients.Count; ++j)
+                    var ingredientName = source.Ingredients
+                                    .FirstOrDefault(rec => rec.Id == candyIngredient.IngredientId);
+                    throw new Exception("Недостаточно ингредиентов " + ingredientName?.IngredientName +
+                        " требуется " + candyIngredient.Count + ", в наличии " + countOnWarehouses);
+                }
+            }
+
+            foreach (var candyIngredient in candyIngredients)
+            {
+                int countOnWarehouses = candyIngredient.Count * element.Count;
+                var warehouseIngredients = source.WarehouseIngredients
+                                            .Where(rec => rec.IngredientId == candyIngredient.IngredientId);
+                foreach (var warehouseIngredient in warehouseIngredients)
+                {
+
+                    if (warehouseIngredient.Count >= countOnWarehouses)
                     {
-                        if(source.WarehouseIngredients[j].IngredientId == source.CandyIngredients[i].IngredientId)
-                        {
-                            countOnStocks += source.WarehouseIngredients[j].Count;
-                        }
+                        warehouseIngredient.Count -= countOnWarehouses;
+                        break;
                     }
-                    if(countOnStocks < source.CandyIngredients[i].Count * source.PurchaseOrders[index].Count)
+                    else
                     {
-                        for (int j = 0; j < source.Ingredients.Count; ++j)
-                        {
-                            if (source.Ingredients[j].Id == source.CandyIngredients[i].IngredientId)
-                            {
-                                throw new Exception("Не достаточно компонента " + source.Ingredients[j].IngredientName + 
-                                    " требуется " + source.CandyIngredients[i].Count + ", в наличии " + countOnStocks);
-                            }
-                        }
+                        countOnWarehouses -= warehouseIngredient.Count;
+                        warehouseIngredient.Count = 0;
                     }
                 }
             }
-            
-            for (int i = 0; i < source.CandyIngredients.Count; ++i)
-            {
-                if (source.CandyIngredients[i].CandyId == source.PurchaseOrders[index].CandyId)
-                {
-                    int countOnStocks = source.CandyIngredients[i].Count * source.PurchaseOrders[index].Count;
-                    for (int j = 0; j < source.WarehouseIngredients.Count; ++j)
-                    {
-                        if (source.WarehouseIngredients[j].IngredientId == source.CandyIngredients[i].IngredientId)
-                        {
-                            
-                            if (source.WarehouseIngredients[j].Count >= countOnStocks)
-                            {
-                                source.WarehouseIngredients[j].Count -= countOnStocks;
-                                break;
-                            }
-                            else
-                            {
-                                countOnStocks -= source.WarehouseIngredients[j].Count;
-                                source.WarehouseIngredients[j].Count = 0;
-                            }
-                        }
-                    }
-                }
-            }
-            source.PurchaseOrders[index].ConfectionerId = model.ConfectionerId;
-            source.PurchaseOrders[index].DateImplement = DateTime.Now;
-            source.PurchaseOrders[index].Status = PurchaseOrderStatus.Выполняется;
+            element.ConfectionerId = model.ConfectionerId;
+            element.DateImplement = DateTime.Now;
+            element.Status = PurchaseOrderStatus.Выполняется;
         }
 
         public void FinishPurchaseOrder(int id)
         {
-            int index = -1;
-            for (int i = 0; i < source.PurchaseOrders.Count; ++i)
-            {
-                if (source.Customers[i].Id == id)
-                {
-                    index = i;
-                    break;
-                }
-            }
-            if (index == -1)
+            PurchaseOrder element = source.PurchaseOrders.FirstOrDefault(rec => rec.Id == id);
+            if (element == null)
             {
                 throw new Exception("Элемент не найден");
             }
-            source.PurchaseOrders[index].Status = PurchaseOrderStatus.Готов;
+            element.Status = PurchaseOrderStatus.Готов;
         }
 
         public void PayPurchaseOrder(int id)
         {
-            int index = -1;
-            for (int i = 0; i < source.PurchaseOrders.Count; ++i)
-            {
-                if (source.Customers[i].Id == id)
-                {
-                    index = i;
-                    break;
-                }
-            }
-            if (index == -1)
+            PurchaseOrder element = source.PurchaseOrders.FirstOrDefault(rec => rec.Id == id);
+            if (element == null)
             {
                 throw new Exception("Элемент не найден");
             }
-            source.PurchaseOrders[index].Status = PurchaseOrderStatus.Оплачен;
+            element.Status = PurchaseOrderStatus.Оплачен;
         }
 
         public void PutIngredientOnStock(WarehouseIngredientBindingModel model)
         {
-            int maxId = 0;
-            for (int i = 0; i < source.WarehouseIngredients.Count; ++i)
+            WarehouseIngredient element = source.WarehouseIngredients
+                                                .FirstOrDefault(rec => rec.WarehouseId == model.WarehouseId &&
+                                                                    rec.IngredientId == model.IngredientId);
+            if (element != null)
             {
-                if(source.WarehouseIngredients[i].WarehouseId == model.WarehouseId && 
-                    source.WarehouseIngredients[i].IngredientId == model.IngredientId)
-                {
-                    source.WarehouseIngredients[i].Count += model.Count;
-                    return;
-                }
-                if (source.WarehouseIngredients[i].Id > maxId)
-                {
-                    maxId = source.WarehouseIngredients[i].Id;
-                }
+                element.Count += model.Count;
             }
-            source.WarehouseIngredients.Add(new WarehouseIngredient
+            else
             {
-                Id = ++maxId,
-                WarehouseId = model.WarehouseId,
-                IngredientId = model.IngredientId,
-                Count = model.Count
-            });
+                int maxId = source.WarehouseIngredients.Count > 0 ? source.WarehouseIngredients.Max(rec => rec.Id) : 0;
+                source.WarehouseIngredients.Add(new WarehouseIngredient
+                {
+                    Id = ++maxId,
+                    WarehouseId = model.WarehouseId,
+                    IngredientId = model.IngredientId,
+                    Count = model.Count
+                });
+            }
         }
     }
 }
