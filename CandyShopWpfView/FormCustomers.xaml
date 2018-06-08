@@ -1,0 +1,17 @@
+﻿<Window x:Class="CandyShopWpfView.FormCustomers"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CandyShopWpfView"
+        mc:Ignorable="d"
+        Title="Покупатели" Height="340" Width="523">
+    <Grid>
+        <DataGrid x:Name="dataGridView" HorizontalAlignment="Left" Height="309" VerticalAlignment="Top" Width="402" IsReadOnly="True"/>
+        <Button Content="Добавить" HorizontalAlignment="Left" Margin="407,10,0,0" VerticalAlignment="Top" Width="98" Click="buttonAdd_Click"/>
+        <Button Content="Изменить" HorizontalAlignment="Left" Margin="407,46,0,0" VerticalAlignment="Top" Width="98" Click="buttonUpd_Click"/>
+        <Button Content="Удалить" HorizontalAlignment="Left" Margin="407,82,0,0" VerticalAlignment="Top" Width="98" Click="buttonDel_Click"/>
+        <Button Content="Обновить" HorizontalAlignment="Left" Margin="407,120,0,0" VerticalAlignment="Top" Width="98" Click="buttonRef_Click"/>
+
+    </Grid>
+</Window>
