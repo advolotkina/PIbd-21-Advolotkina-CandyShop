@@ -1,0 +1,28 @@
+﻿<Window x:Class="CandyShopWpfView.FormMain"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CandyShopWpfView"
+        mc:Ignorable="d"
+        Title="Кондитерская" Height="388" Width="767" >
+    <Grid Margin="0,0,2,0">
+        <Menu HorizontalAlignment="Left" Height="21" VerticalAlignment="Top" Width="757" Margin="0,5,0,0">
+            <MenuItem Header="Справочники">
+                <MenuItem Header="Покупатели" Click="customersItem_Click"/>
+                <MenuItem Header="Ингредиенты" Click="ingredientsMenuItem_Click"/>
+                <MenuItem Header="Сладости" Click="candiesMenuItem_Click"/>
+                <MenuItem Header="Склады" Click="warehousesMenuItem_Click"/>
+                <MenuItem Header="Кондитеры" Click="confectionersMenuItem_Click"/>
+            </MenuItem>
+            <MenuItem Header="Пополнить склад" Click="putOnWarehouseMenuItem_Click"/>
+        </Menu>
+        <DataGrid x:Name="dataGridView" HorizontalAlignment="Left" Height="331" Margin="0,26,0,0" VerticalAlignment="Top" Width="570" Grid.ColumnSpan="2" IsReadOnly="True"/>
+        <Button x:Name="buttonCreateOrder" Content="Создать заказ" HorizontalAlignment="Left" Margin="582,31,0,0" VerticalAlignment="Top" Width="165" Height="29" Click="buttonCreateOrder_Click"/>
+        <Button x:Name="buttonTakeOrderInWork" Content="Отдать на выполнение" HorizontalAlignment="Left" Margin="582,85,0,0" VerticalAlignment="Top" Width="165" Height="29" Click="buttonTakeOrderInWork_Click"/>
+        <Button x:Name="buttonOrderReady" Content="Заказ готов" HorizontalAlignment="Left" Margin="582,134,0,0" VerticalAlignment="Top" Width="165" Height="28" Click="buttonOrderReady_Click"/>
+        <Button x:Name="buttonPayOrder" Content="Заказ оплачен" HorizontalAlignment="Left" Margin="582,184,0,0" VerticalAlignment="Top" Width="165" Height="29" Click="buttonPayOrder_Click"/>
+        <Button x:Name="buttonRef" Content="Обновить список" HorizontalAlignment="Left" Margin="582,232,0,0" VerticalAlignment="Top" Width="165" Height="29" Click="buttonRef_Click"/>
+
+    </Grid>
+</Window>
