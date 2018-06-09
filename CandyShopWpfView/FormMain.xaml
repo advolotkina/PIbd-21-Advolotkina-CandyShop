@@ -16,6 +16,11 @@
                 <MenuItem Header="Кондитеры" Click="confectionersMenuItem_Click"/>
             </MenuItem>
             <MenuItem Header="Пополнить склад" Click="putOnWarehouseMenuItem_Click"/>
+            <MenuItem Header="Отчеты">
+                <MenuItem Header="Прайс конфет" Click="candyPriceMenuItem_Click"/>
+                <MenuItem Header="Загруженность складов" Click="warehousesLoadMenuItem_Click"/>
+                <MenuItem Header="Заказы покупателей" Click="customerOrdersMenuItem_Click"/>
+            </MenuItem>
         </Menu>
         <DataGrid x:Name="dataGridView" HorizontalAlignment="Left" Height="331" Margin="0,26,0,0" VerticalAlignment="Top" Width="570" Grid.ColumnSpan="2" IsReadOnly="True"/>
         <Button x:Name="buttonCreateOrder" Content="Создать заказ" HorizontalAlignment="Left" Margin="582,31,0,0" VerticalAlignment="Top" Width="165" Height="29" Click="buttonCreateOrder_Click"/>
