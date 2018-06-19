@@ -25,19 +25,15 @@ namespace CandyShopView
             {
                 try
                 {
-                    var response = ClientAPI.GetRequest("api/Confectioner/Get/" + id.Value);
-                    if (response.Result.IsSuccessStatusCode)
-                    {
-                        var confectioner = ClientAPI.GetElement<ConfectionerViewModel>(response);
-                        textBoxFIO.Text = confectioner.ConfectionerFIO;
-                    }
-                    else
-                    {
-                        throw new Exception(ClientAPI.GetError(response));
-                    }
+                    var confectioner = Task.Run(() => ClientAPI.GetRequestData<ConfectionerViewModel>("api/Confectioner/Get/" + id.Value)).Result;
+                    textBoxFIO.Text = confectioner.ConfectionerFIO;
                 }
                 catch (Exception ex)
                 {
+                    while (ex.InnerException != null)
+                    {
+                        ex = ex.InnerException;
+                    }
                     MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -50,44 +46,41 @@ namespace CandyShopView
                 MessageBox.Show("Заполните ФИО", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-            try
+            string fio = textBoxFIO.Text;
+            Task task;
+            if (id.HasValue)
             {
-                Task<HttpResponseMessage> response;
-                if (id.HasValue)
+                task = Task.Run(() => ClientAPI.PostRequestData("api/Confectioner/UpdElement", new ConfectionerBindingModel
                 {
-                    response = ClientAPI.PostRequest("api/Confectioner/UpdElement", new ConfectionerBindingModel
-                    {
-                        Id = id.Value,
-                        ConfectionerFIO = textBoxFIO.Text
-                    });
-                }
-                else
-                {
-                    response = ClientAPI.PostRequest("api/Confectioner/AddElement", new ConfectionerBindingModel
-                    {
-                        ConfectionerFIO = textBoxFIO.Text
-                    });
-                }
-                if (response.Result.IsSuccessStatusCode)
-                {
-                    MessageBox.Show("Сохранение прошло успешно", "Сообщение", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    DialogResult = DialogResult.OK;
-                    Close();
-                }
-                else
-                {
-                    throw new Exception(ClientAPI.GetError(response));
-                }
+                    Id = id.Value,
+                    ConfectionerFIO = fio
+                }));
             }
-            catch (Exception ex)
+            else
             {
+                task = Task.Run(() => ClientAPI.PostRequestData("api/Confectioner/AddElement", new ConfectionerBindingModel
+                {
+                    ConfectionerFIO = fio
+                }));
+            }
+
+            task.ContinueWith((prevTask) => MessageBox.Show("Сохранение прошло успешно. Обновите список", "Сообщение", MessageBoxButtons.OK, MessageBoxIcon.Information),
+                TaskContinuationOptions.OnlyOnRanToCompletion);
+            task.ContinueWith((prevTask) =>
+            {
+                var ex = (Exception)prevTask.Exception;
+                while (ex.InnerException != null)
+                {
+                    ex = ex.InnerException;
+                }
                 MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            }, TaskContinuationOptions.OnlyOnFaulted);
+
+            Close();
         }
 
         private void buttonCancel_Click(object sender, EventArgs e)
         {
-            DialogResult = DialogResult.Cancel;
             Close();
         }
     }

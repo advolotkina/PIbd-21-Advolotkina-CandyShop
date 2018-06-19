@@ -27,22 +27,18 @@ namespace CandyShopView
             {
                 try
                 {
-                    var response = ClientAPI.GetRequest("api/Candy/Get/" + id.Value);
-                    if (response.Result.IsSuccessStatusCode)
-                    {
-                        var candy = ClientAPI.GetElement<CandyViewModel>(response);
-                        textBoxName.Text = candy.CandyName;
-                        textBoxPrice.Text = candy.Price.ToString();
-                        candyIngredients = candy.CandyIngredients;
-                        LoadData();
-                    }
-                    else
-                    {
-                        throw new Exception(ClientAPI.GetError(response));
-                    }
+                    var candy = Task.Run(() => ClientAPI.GetRequestData<CandyViewModel>("api/Candy/Get/" + id.Value)).Result;
+                    textBoxName.Text = candy.CandyName;
+                    textBoxPrice.Text = candy.Price.ToString();
+                    candyIngredients = candy.CandyIngredients;
+                    LoadData();
                 }
                 catch (Exception ex)
                 {
+                    while (ex.InnerException != null)
+                    {
+                        ex = ex.InnerException;
+                    }
                     MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -129,6 +125,7 @@ namespace CandyShopView
 
         private void buttonSave_Click(object sender, EventArgs e)
         {
+
             if (string.IsNullOrEmpty(textBoxName.Text))
             {
                 MessageBox.Show("Заполните название", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -144,59 +141,57 @@ namespace CandyShopView
                 MessageBox.Show("Заполните компоненты", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-            try
+            List<CandyIngredientBindingModel> candyIngredientBM = new List<CandyIngredientBindingModel>();
+            for (int i = 0; i < candyIngredients.Count; ++i)
             {
-                List<CandyIngredientBindingModel> candyIngredientBM = new List<CandyIngredientBindingModel>();
-                for (int i = 0; i < candyIngredients.Count; ++i)
+                candyIngredientBM.Add(new CandyIngredientBindingModel
                 {
-                    candyIngredientBM.Add(new CandyIngredientBindingModel
-                    {
-                        Id = candyIngredients[i].Id,
-                        CandyId = candyIngredients[i].CandyId,
-                        IngredientId = candyIngredients[i].IngredientId,
-                        Count = candyIngredients[i].Count
-                    });
-                }
-                Task<HttpResponseMessage> response;
-                if (id.HasValue)
-                {
-                    response = ClientAPI.PostRequest("api/Candy/UpdElement", new CandyBindingModel
-                    {
-                        Id = id.Value,
-                        CandyName = textBoxName.Text,
-                        Price = Convert.ToInt32(textBoxPrice.Text),
-                        CandyIngredients = candyIngredientBM
-                    });
-                }
-                else
-                {
-                    response = ClientAPI.PostRequest("api/Candy/AddElement", new CandyBindingModel
-                    {
-                        CandyName = textBoxName.Text,
-                        Price = Convert.ToInt32(textBoxPrice.Text),
-                        CandyIngredients = candyIngredientBM
-                    });
-                }
-                if (response.Result.IsSuccessStatusCode)
-                {
-                    MessageBox.Show("Сохранение прошло успешно", "Сообщение", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    DialogResult = DialogResult.OK;
-                    Close();
-                }
-                else
-                {
-                    throw new Exception(ClientAPI.GetError(response));
-                }
+                    Id = candyIngredients[i].Id,
+                    CandyId = candyIngredients[i].CandyId,
+                    IngredientId = candyIngredients[i].IngredientId,
+                    Count = candyIngredients[i].Count
+                });
             }
-            catch (Exception ex)
+            string name = textBoxName.Text;
+            int price = Convert.ToInt32(textBoxPrice.Text);
+            Task task;
+            if (id.HasValue)
             {
+                task = Task.Run(() => ClientAPI.PostRequestData("api/Candy/UpdElement", new CandyBindingModel
+                {
+                    Id = id.Value,
+                    CandyName = name,
+                    Price = price,
+                    CandyIngredients = candyIngredientBM
+                }));
+            }
+            else
+            {
+                task = Task.Run(() => ClientAPI.PostRequestData("api/Candy/AddElement", new CandyBindingModel
+                {
+                    CandyName = name,
+                    Price = price,
+                    CandyIngredients = candyIngredientBM
+                }));
+            }
+
+            task.ContinueWith((prevTask) => MessageBox.Show("Сохранение прошло успешно. Обновите список", "Сообщение", MessageBoxButtons.OK, MessageBoxIcon.Information),
+                TaskContinuationOptions.OnlyOnRanToCompletion);
+            task.ContinueWith((prevTask) =>
+            {
+                var ex = (Exception)prevTask.Exception;
+                while (ex.InnerException != null)
+                {
+                    ex = ex.InnerException;
+                }
                 MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            }, TaskContinuationOptions.OnlyOnFaulted);
+
+            Close();
         }
 
         private void buttonCancel_Click(object sender, EventArgs e)
         {
-            DialogResult = DialogResult.Cancel;
             Close();
         }
     }
