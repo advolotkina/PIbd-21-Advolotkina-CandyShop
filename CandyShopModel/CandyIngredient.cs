@@ -9,5 +9,9 @@
         public int IngredientId { get; set; }
 
         public int Count { get; set; }
+
+        public virtual Candy Candy { get; set; }
+
+        public virtual Ingredient Ingredient { get; set; }
     }
 }
