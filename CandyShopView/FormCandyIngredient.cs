@@ -1,41 +1,37 @@
-﻿using CandyShopService.Interfaces;
-using CandyShopService.ViewModels;
+﻿using CandyShopService.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
-using Unity;
-using Unity.Attributes;
 
 namespace CandyShopView
 {
     public partial class FormCandyIngredient : Form
     {
-        [Dependency]
-        public new IUnityContainer Container { get; set; }
 
         public CandyIngredientViewModel Model { set { model = value; }  get { return model; } }
 
-        private readonly IIngredientService service;
-
         private CandyIngredientViewModel model;
 
-        public FormCandyIngredient(IIngredientService service)
+        public FormCandyIngredient()
         {
             InitializeComponent();
-            this.service = service;
         }
 
         private void FormCandyIngredient_Load(object sender, EventArgs e)
         {
             try
             {
-                List<IngredientViewModel> list = service.GetList();
-                if (list != null)
+                var response = ClientAPI.GetRequest("api/Ingredient/GetList");
+                if (response.Result.IsSuccessStatusCode)
                 {
                     comboBoxComponent.DisplayMember = "IngredientName";
                     comboBoxComponent.ValueMember = "Id";
-                    comboBoxComponent.DataSource = list;
+                    comboBoxComponent.DataSource = ClientAPI.GetElement<List<IngredientViewModel>>(response);
                     comboBoxComponent.SelectedItem = null;
+                }
+                else
+                {
+                    throw new Exception(ClientAPI.GetError(response));
                 }
             }
             catch (Exception ex)

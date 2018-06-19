@@ -4,10 +4,10 @@ using System.Data.Entity;
 
 namespace CandyShopService
 {
-    [Table("CandyShopDatabase")]
+    //[Table("CandyShopDatabase")]
     public class CandyShopDbContext: DbContext
     {
-        public CandyShopDbContext()
+        public CandyShopDbContext() : base("CandyShopDatabase")
         {
             Configuration.ProxyCreationEnabled = false;
             Configuration.LazyLoadingEnabled = false;

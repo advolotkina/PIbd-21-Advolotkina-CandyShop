@@ -4,49 +4,52 @@ using CandyShopService.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
-using Unity;
-using Unity.Attributes;
 
 namespace CandyShopView
 {
     public partial class FormCreatePurchaseOrder : Form
     {
-        [Dependency]
-        public new IUnityContainer Container { get; set; }
 
-        private readonly ICustomerService serviceC;
-
-        private readonly ICandyService serviceP;
-
-        private readonly IMainService serviceM;
-
-        public FormCreatePurchaseOrder(ICustomerService serviceC, ICandyService serviceP, IMainService serviceM)
+        public FormCreatePurchaseOrder()
         {
             InitializeComponent();
-            this.serviceC = serviceC;
-            this.serviceP = serviceP;
-            this.serviceM = serviceM;
         }
 
         private void FormCreatePurchaseOrder_Load(object sender, EventArgs e)
         {
             try
             {
-                List<CustomerViewModel> listC = serviceC.GetList();
-                if (listC != null)
+                var responseC = ClientAPI.GetRequest("api/Customer/GetList");
+                if (responseC.Result.IsSuccessStatusCode)
                 {
-                    comboBoxClient.DisplayMember = "CustomerFIO";
-                    comboBoxClient.ValueMember = "Id";
-                    comboBoxClient.DataSource = listC;
-                    comboBoxClient.SelectedItem = null;
+                    List<CustomerViewModel> list = ClientAPI.GetElement<List<CustomerViewModel>>(responseC);
+                    if (list != null)
+                    {
+                        comboBoxClient.DisplayMember = "CustomerFIO";
+                        comboBoxClient.ValueMember = "Id";
+                        comboBoxClient.DataSource = list;
+                        comboBoxClient.SelectedItem = null;
+                    }
                 }
-                List<CandyViewModel> listP = serviceP.GetList();
-                if (listP != null)
+                else
                 {
-                    comboBoxProduct.DisplayMember = "CandyName";
-                    comboBoxProduct.ValueMember = "Id";
-                    comboBoxProduct.DataSource = listP;
-                    comboBoxProduct.SelectedItem = null;
+                    throw new Exception(ClientAPI.GetError(responseC));
+                }
+                var responseP = ClientAPI.GetRequest("api/Candy/GetList");
+                if (responseP.Result.IsSuccessStatusCode)
+                {
+                    List<CandyViewModel> list = ClientAPI.GetElement<List<CandyViewModel>>(responseP);
+                    if (list != null)
+                    {
+                        comboBoxProduct.DisplayMember = "CandyName";
+                        comboBoxProduct.ValueMember = "Id";
+                        comboBoxProduct.DataSource = list;
+                        comboBoxProduct.SelectedItem = null;
+                    }
+                }
+                else
+                {
+                    throw new Exception(ClientAPI.GetError(responseP));
                 }
             }
             catch (Exception ex)
@@ -62,11 +65,19 @@ namespace CandyShopView
                 try
                 {
                     int id = Convert.ToInt32(comboBoxProduct.SelectedValue);
-                    CandyViewModel product = serviceP.GetElement(id);
-                    int count = Convert.ToInt32(textBoxCount.Text);
-                    textBoxSum.Text = (count * (int)product.Price).ToString();
+                    var responseP = ClientAPI.GetRequest("api/Candy/Get/" + id);
+                    if (responseP.Result.IsSuccessStatusCode)
+                    {
+                        CandyViewModel product = ClientAPI.GetElement<CandyViewModel>(responseP);
+                        int count = Convert.ToInt32(textBoxCount.Text);
+                        textBoxSum.Text = (count * (int)product.Price).ToString();
+                    }
+                    else
+                    {
+                        throw new Exception(ClientAPI.GetError(responseP));
+                    }
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
@@ -97,21 +108,28 @@ namespace CandyShopView
             }
             if (comboBoxProduct.SelectedValue == null)
             {
-                MessageBox.Show("Выберите сладости", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Выберите сладость", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
             try
             {
-                serviceM.CreatePurchaseOrder(new PurchaseOrderBindingModel
+                var response = ClientAPI.PostRequest("api/Main/CreatePurchaseOrder", new PurchaseOrderBindingModel
                 {
                     CustomerId = Convert.ToInt32(comboBoxClient.SelectedValue),
                     CandyId = Convert.ToInt32(comboBoxProduct.SelectedValue),
                     Count = Convert.ToInt32(textBoxCount.Text),
                     Sum = Convert.ToInt32(textBoxSum.Text)
                 });
-                MessageBox.Show("Сохранение прошло успешно", "Сообщение", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                DialogResult = DialogResult.OK;
-                Close();
+                if (response.Result.IsSuccessStatusCode)
+                {
+                    MessageBox.Show("Сохранение прошло успешно", "Сообщение", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    DialogResult = DialogResult.OK;
+                    Close();
+                }
+                else
+                {
+                    throw new Exception(ClientAPI.GetError(response));
+                }
             }
             catch (Exception ex)
             {

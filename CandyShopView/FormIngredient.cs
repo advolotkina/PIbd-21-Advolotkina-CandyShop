@@ -2,27 +2,21 @@
 using CandyShopService.Interfaces;
 using CandyShopService.ViewModels;
 using System;
+using System.Net.Http;
+using System.Threading.Tasks;
 using System.Windows.Forms;
-using Unity;
-using Unity.Attributes;
 
 namespace CandyShopView
 {
     public partial class FormIngredient : Form
     {
-        [Dependency]
-        public new IUnityContainer Container { get; set; }
-
         public int Id { set { id = value; } }
-
-        private readonly IIngredientService service;
 
         private int? id;
 
-        public FormIngredient(IIngredientService service)
+        public FormIngredient()
         {
             InitializeComponent();
-            this.service = service;
         }
 
         private void FormIngredient_Load(object sender, EventArgs e)
@@ -31,10 +25,15 @@ namespace CandyShopView
             {
                 try
                 {
-                    IngredientViewModel view = service.GetElement(id.Value);
-                    if (view != null)
+                    var response = ClientAPI.GetRequest("api/Ingredient/Get/" + id.Value);
+                    if (response.Result.IsSuccessStatusCode)
                     {
-                        textBoxName.Text = view.IngredientName;
+                        var ingredient = ClientAPI.GetElement<IngredientViewModel>(response);
+                        textBoxName.Text = ingredient.IngredientName;
+                    }
+                    else
+                    {
+                        throw new Exception(ClientAPI.GetError(response));
                     }
                 }
                 catch (Exception ex)
@@ -53,9 +52,10 @@ namespace CandyShopView
             }
             try
             {
+                Task<HttpResponseMessage> response;
                 if (id.HasValue)
                 {
-                    service.UpdElement(new IngredientBindingModel
+                    response = ClientAPI.PostRequest("api/Ingredient/UpdElement", new IngredientBindingModel
                     {
                         Id = id.Value,
                         IngredientName = textBoxName.Text
@@ -63,14 +63,21 @@ namespace CandyShopView
                 }
                 else
                 {
-                    service.AddElement(new IngredientBindingModel
+                    response = ClientAPI.PostRequest("api/Ingredient/AddElement", new IngredientBindingModel
                     {
                         IngredientName = textBoxName.Text
                     });
                 }
-                MessageBox.Show("Сохранение прошло успешно", "Сообщение", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                DialogResult = DialogResult.OK;
-                Close();
+                if (response.Result.IsSuccessStatusCode)
+                {
+                    MessageBox.Show("Сохранение прошло успешно", "Сообщение", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    DialogResult = DialogResult.OK;
+                    Close();
+                }
+                else
+                {
+                    throw new Exception(ClientAPI.GetError(response));
+                }
             }
             catch (Exception ex)
             {

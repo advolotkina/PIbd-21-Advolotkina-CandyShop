@@ -1,52 +1,53 @@
 ﻿using CandyShopService.BindingModels;
-using CandyShopService.Interfaces;
 using CandyShopService.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
-using Unity;
-using Unity.Attributes;
 
 namespace CandyShopView
 {
     public partial class FormPutOnWarehouse : Form
     {
-        [Dependency]
-        public new IUnityContainer Container { get; set; }
-
-        private readonly IWarehouseService serviceS;
-
-        private readonly IIngredientService serviceC;
-
-        private readonly IMainService serviceM;
-
-        public FormPutOnWarehouse(IWarehouseService serviceS, IIngredientService serviceC, IMainService serviceM)
+        public FormPutOnWarehouse()
         {
             InitializeComponent();
-            this.serviceS = serviceS;
-            this.serviceC = serviceC;
-            this.serviceM = serviceM;
         }
 
         private void FormPutOnWarehouse_Load(object sender, EventArgs e)
         {
             try
             {
-                List<IngredientViewModel> listC = serviceC.GetList();
-                if (listC != null)
+                var responseI = ClientAPI.GetRequest("api/Ingredient/GetList");
+                if (responseI.Result.IsSuccessStatusCode)
                 {
-                    comboBoxComponent.DisplayMember = "IngredientName";
-                    comboBoxComponent.ValueMember = "Id";
-                    comboBoxComponent.DataSource = listC;
-                    comboBoxComponent.SelectedItem = null;
+                    List<IngredientViewModel> list = ClientAPI.GetElement<List<IngredientViewModel>>(responseI);
+                    if (list != null)
+                    {
+                        comboBoxComponent.DisplayMember = "IngredientName";
+                        comboBoxComponent.ValueMember = "Id";
+                        comboBoxComponent.DataSource = list;
+                        comboBoxComponent.SelectedItem = null;
+                    }
                 }
-                List<WarehouseViewModel> listS = serviceS.GetList();
-                if (listS != null)
+                else
                 {
-                    comboBoxStock.DisplayMember = "WarehouseName";
-                    comboBoxStock.ValueMember = "Id";
-                    comboBoxStock.DataSource = listS;
-                    comboBoxStock.SelectedItem = null;
+                    throw new Exception(ClientAPI.GetError(responseI));
+                }
+                var responseW = ClientAPI.GetRequest("api/Warehouse/GetList");
+                if (responseW.Result.IsSuccessStatusCode)
+                {
+                    List<WarehouseViewModel> list = ClientAPI.GetElement<List<WarehouseViewModel>>(responseW);
+                    if (list != null)
+                    {
+                        comboBoxStock.DisplayMember = "WarehouseName";
+                        comboBoxStock.ValueMember = "Id";
+                        comboBoxStock.DataSource = list;
+                        comboBoxStock.SelectedItem = null;
+                    }
+                }
+                else
+                {
+                    throw new Exception(ClientAPI.GetError(responseI));
                 }
             }
             catch (Exception ex)
@@ -64,7 +65,7 @@ namespace CandyShopView
             }
             if (comboBoxComponent.SelectedValue == null)
             {
-                MessageBox.Show("Выберите ингредиент", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Выберите компонент", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
             if (comboBoxStock.SelectedValue == null)
@@ -74,15 +75,22 @@ namespace CandyShopView
             }
             try
             {
-                serviceM.PutIngredientOnStock(new WarehouseIngredientBindingModel
+                var response = ClientAPI.PostRequest("api/Main/PutIngredientOnStock", new WarehouseIngredientBindingModel
                 {
                     IngredientId = Convert.ToInt32(comboBoxComponent.SelectedValue),
                     WarehouseId = Convert.ToInt32(comboBoxStock.SelectedValue),
                     Count = Convert.ToInt32(textBoxCount.Text)
                 });
-                MessageBox.Show("Сохранение прошло успешно", "Сообщение", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                DialogResult = DialogResult.OK;
-                Close();
+                if (response.Result.IsSuccessStatusCode)
+                {
+                    MessageBox.Show("Сохранение прошло успешно", "Сообщение", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    DialogResult = DialogResult.OK;
+                    Close();
+                }
+                else
+                {
+                    throw new Exception(ClientAPI.GetError(response));
+                }
             }
             catch (Exception ex)
             {

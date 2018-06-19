@@ -64,7 +64,7 @@ namespace CandyShopService.ImplementationsList
             {
                 throw new Exception("Элемент не найден");
             }
-
+            
             var candyIngredients = source.CandyIngredients.Where(rec => rec.CandyId == element.CandyId);
             foreach (var candyIngredient in candyIngredients)
             {
@@ -79,7 +79,7 @@ namespace CandyShopService.ImplementationsList
                         " требуется " + candyIngredient.Count + ", в наличии " + countOnWarehouses);
                 }
             }
-
+            
             foreach (var candyIngredient in candyIngredients)
             {
                 int countOnWarehouses = candyIngredient.Count * element.Count;
@@ -87,7 +87,7 @@ namespace CandyShopService.ImplementationsList
                                             .Where(rec => rec.IngredientId == candyIngredient.IngredientId);
                 foreach (var warehouseIngredient in warehouseIngredients)
                 {
-
+                    
                     if (warehouseIngredient.Count >= countOnWarehouses)
                     {
                         warehouseIngredient.Count -= countOnWarehouses;

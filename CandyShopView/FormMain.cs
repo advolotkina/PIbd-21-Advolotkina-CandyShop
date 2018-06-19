@@ -1,43 +1,40 @@
 ﻿using CandyShopService.BindingModels;
-using CandyShopService.Interfaces;
 using CandyShopService.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
-using Unity;
-using Unity.Attributes;
 
 namespace CandyShopView
 {
     public partial class FormMain : Form
     {
-        [Dependency]
-        public new IUnityContainer Container { get; set; }
 
-        private readonly IMainService service;
-
-        private readonly IReportService reportService;
-
-        public FormMain(IMainService service, IReportService reportService)
+        public FormMain()
         {
             InitializeComponent();
-            this.service = service;
-            this.reportService = reportService;
         }
 
         private void LoadData()
         {
             try
             {
-                List<PurchaseOrderViewModel> list = service.GetList();
-                if (list != null)
+                var response = ClientAPI.GetRequest("api/Main/GetList");
+                if (response.Result.IsSuccessStatusCode)
                 {
-                    dataGridView.DataSource = list;
-                    dataGridView.Columns[0].Visible = false;
-                    dataGridView.Columns[1].Visible = false;
-                    dataGridView.Columns[3].Visible = false;
-                    dataGridView.Columns[5].Visible = false;
-                    dataGridView.Columns[1].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+                    List<PurchaseOrderViewModel> list = ClientAPI.GetElement<List<PurchaseOrderViewModel>>(response);
+                    if (list != null)
+                    {
+                        dataGridView.DataSource = list;
+                        dataGridView.Columns[0].Visible = false;
+                        dataGridView.Columns[1].Visible = false;
+                        dataGridView.Columns[3].Visible = false;
+                        dataGridView.Columns[5].Visible = false;
+                        dataGridView.Columns[1].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+                    }
+                }
+                else
+                {
+                    throw new Exception(ClientAPI.GetError(response));
                 }
             }
             catch (Exception ex)
@@ -48,43 +45,43 @@ namespace CandyShopView
 
         private void клиентыToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var form = Container.Resolve<FormCustomers>();
+            var form = new FormCustomers();
             form.ShowDialog();
         }
 
         private void компонентыToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var form = Container.Resolve<FormIngredients>();
+            var form = new FormIngredients();
             form.ShowDialog();
         }
 
         private void изделияToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var form = Container.Resolve<FormCandies>();
+            var form = new FormCandies();
             form.ShowDialog();
         }
 
         private void складыToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var form = Container.Resolve<FormWarehouses>();
+            var form = new FormWarehouses();
             form.ShowDialog();
         }
 
         private void сотрудникиToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var form = Container.Resolve<FormConfectioners>();
+            var form = new FormConfectioners();
             form.ShowDialog();
         }
 
         private void пополнитьСкладToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var form = Container.Resolve<FormPutOnWarehouse>();
+            var form = new FormPutOnWarehouse();
             form.ShowDialog();
         }
 
         private void buttonCreateOrder_Click(object sender, EventArgs e)
         {
-            var form = Container.Resolve<FormCreatePurchaseOrder>();
+            var form = new FormCreatePurchaseOrder();
             form.ShowDialog();
             LoadData();
         }
@@ -93,7 +90,7 @@ namespace CandyShopView
         {
             if (dataGridView.SelectedRows.Count == 1)
             {
-                var form = Container.Resolve<FormTakePurchaseOrderInWork>();
+                var form = new FormTakePurchaseOrderInWork();
                 form.Id = Convert.ToInt32(dataGridView.SelectedRows[0].Cells[0].Value);
                 form.ShowDialog();
                 LoadData();
@@ -107,8 +104,18 @@ namespace CandyShopView
                 int id = Convert.ToInt32(dataGridView.SelectedRows[0].Cells[0].Value);
                 try
                 {
-                    service.FinishPurchaseOrder(id);
-                    LoadData();
+                    var response = ClientAPI.PostRequest("api/Main/FinishPurchaseOrder", new PurchaseOrderBindingModel
+                    {
+                        Id = id
+                    });
+                    if (response.Result.IsSuccessStatusCode)
+                    {
+                        LoadData();
+                    }
+                    else
+                    {
+                        throw new Exception(ClientAPI.GetError(response));
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -124,8 +131,18 @@ namespace CandyShopView
                 int id = Convert.ToInt32(dataGridView.SelectedRows[0].Cells[0].Value);
                 try
                 {
-                    service.PayPurchaseOrder(id);
-                    LoadData();
+                    var response = ClientAPI.PostRequest("api/Main/PayPurchaseOrder", new PurchaseOrderBindingModel
+                    {
+                        Id = id
+                    });
+                    if (response.Result.IsSuccessStatusCode)
+                    {
+                        LoadData();
+                    }
+                    else
+                    {
+                        throw new Exception(ClientAPI.GetError(response));
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -149,11 +166,18 @@ namespace CandyShopView
             {
                 try
                 {
-                    reportService.SaveCandyPrice(new ReportBindingModel
+                    var response = ClientAPI.PostRequest("api/Report/SaveCandyPrice", new ReportBindingModel
                     {
                         FileName = sfd.FileName
                     });
-                    MessageBox.Show("Выполнено", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    if (response.Result.IsSuccessStatusCode)
+                    {
+                        MessageBox.Show("Выполнено", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                        throw new Exception(ClientAPI.GetError(response));
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -164,13 +188,13 @@ namespace CandyShopView
 
         private void загруженностьСкладовToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var form = Container.Resolve<FormWarehousesLoad>();
+            var form = new FormWarehousesLoad();
             form.ShowDialog();
         }
 
         private void заказыПокупателейToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var form = Container.Resolve<FormCustomerOrders>();
+            var form = new FormCustomerOrders();
 
             form.ShowDialog();
         }
