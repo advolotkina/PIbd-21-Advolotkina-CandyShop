@@ -41,7 +41,7 @@ namespace CandyShopService.ImplementationsList
                     CustomerFIO = element.CustomerFIO
                 };
             }
-            throw new Exception("Элемент не найден");
+            throw new Exception("Элемент не найден"); 
         }
 
         public void AddElement(CustomerBindingModel model)

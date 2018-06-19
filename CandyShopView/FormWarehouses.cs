@@ -1,24 +1,16 @@
-﻿using CandyShopService.Interfaces;
+﻿using CandyShopService.BindingModels;
 using CandyShopService.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
-using Unity;
-using Unity.Attributes;
 
 namespace CandyShopView
 {
     public partial class FormWarehouses : Form
     {
-        [Dependency]
-        public new IUnityContainer Container { get; set; }
-
-        private readonly IWarehouseService service;
-
-        public FormWarehouses(IWarehouseService service)
+        public FormWarehouses()
         {
             InitializeComponent();
-            this.service = service;
         }
 
         private void FormWarehouses_Load(object sender, EventArgs e)
@@ -30,12 +22,20 @@ namespace CandyShopView
         {
             try
             {
-                List<WarehouseViewModel> list = service.GetList();
-                if (list != null)
+                var response = ClientAPI.GetRequest("api/Warehouse/GetList");
+                if (response.Result.IsSuccessStatusCode)
                 {
-                    dataGridView.DataSource = list;
-                    dataGridView.Columns[0].Visible = false;
-                    dataGridView.Columns[1].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+                    List<WarehouseViewModel> list = ClientAPI.GetElement<List<WarehouseViewModel>>(response);
+                    if (list != null)
+                    {
+                        dataGridView.DataSource = list;
+                        dataGridView.Columns[0].Visible = false;
+                        dataGridView.Columns[1].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+                    }
+                }
+                else
+                {
+                    throw new Exception(ClientAPI.GetError(response));
                 }
             }
             catch (Exception ex)
@@ -46,7 +46,7 @@ namespace CandyShopView
 
         private void buttonAdd_Click(object sender, EventArgs e)
         {
-            var form = Container.Resolve<FormWarehouse>();
+            var form = new FormWarehouse();
             if (form.ShowDialog() == DialogResult.OK)
             {
                 LoadData();
@@ -57,7 +57,7 @@ namespace CandyShopView
         {
             if (dataGridView.SelectedRows.Count == 1)
             {
-                var form = Container.Resolve<FormWarehouse>();
+                var form = new FormWarehouse();
                 form.Id = Convert.ToInt32(dataGridView.SelectedRows[0].Cells[0].Value);
                 if (form.ShowDialog() == DialogResult.OK)
                 {
@@ -75,7 +75,11 @@ namespace CandyShopView
                     int id = Convert.ToInt32(dataGridView.SelectedRows[0].Cells[0].Value);
                     try
                     {
-                        service.DelElement(id);
+                        var response = ClientAPI.PostRequest("api/Warehouse/DelElement", new CustomerBindingModel { Id = id });
+                        if (!response.Result.IsSuccessStatusCode)
+                        {
+                            throw new Exception(ClientAPI.GetError(response));
+                        }
                     }
                     catch (Exception ex)
                     {

@@ -82,6 +82,7 @@
             this.Controls.Add(this.dataGridView);
             this.Name = "FormWarehousesLoad";
             this.Text = "FormWarehousesLoad";
+            this.Load += new System.EventHandler(this.FormWarehousesLoad_Load);
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView)).EndInit();
             this.ResumeLayout(false);
 

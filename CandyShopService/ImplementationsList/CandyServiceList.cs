@@ -83,10 +83,10 @@ namespace CandyShopService.ImplementationsList
                 CandyName = model.CandyName,
                 Price = model.Price
             });
-
+            
             int maxCCId = source.CandyIngredients.Count > 0 ?
                                     source.CandyIngredients.Max(rec => rec.Id) : 0;
-
+            
             var groupIngredients = model.CandyIngredients
                                         .GroupBy(rec => rec.IngredientId)
                                         .Select(rec => new
@@ -94,7 +94,7 @@ namespace CandyShopService.ImplementationsList
                                             IngredientId = rec.Key,
                                             Count = rec.Sum(r => r.Count)
                                         });
-
+           
             foreach (var groupIngredient in groupIngredients)
             {
                 source.CandyIngredients.Add(new CandyIngredient
@@ -124,7 +124,7 @@ namespace CandyShopService.ImplementationsList
             element.Price = model.Price;
 
             int maxPCId = source.CandyIngredients.Count > 0 ? source.CandyIngredients.Max(rec => rec.Id) : 0;
-
+            
             var compIds = model.CandyIngredients.Select(rec => rec.IngredientId).Distinct();
             var updateIngredients = source.CandyIngredients
                                             .Where(rec => rec.CandyId == model.Id &&
@@ -136,7 +136,7 @@ namespace CandyShopService.ImplementationsList
             }
             source.CandyIngredients.RemoveAll(rec => rec.CandyId == model.Id &&
                                        !compIds.Contains(rec.IngredientId));
-
+            
             var groupIngredients = model.CandyIngredients
                                         .Where(rec => rec.Id == 0)
                                         .GroupBy(rec => rec.IngredientId)

@@ -1,28 +1,21 @@
 ﻿using CandyShopService.BindingModels;
-using CandyShopService.Interfaces;
 using CandyShopService.ViewModels;
 using System;
+using System.Net.Http;
+using System.Threading.Tasks;
 using System.Windows.Forms;
-using Unity;
-using Unity.Attributes;
 
 namespace CandyShopView
 {
     public partial class FormWarehouse : Form
     {
-        [Dependency]
-        public new IUnityContainer Container { get; set; }
-
         public int Id { set { id = value; } }
-
-        private readonly IWarehouseService service;
 
         private int? id;
 
-        public FormWarehouse(IWarehouseService service)
+        public FormWarehouse()
         {
             InitializeComponent();
-            this.service = service;
         }
 
         private void FormWarehouse_Load(object sender, EventArgs e)
@@ -31,15 +24,20 @@ namespace CandyShopView
             {
                 try
                 {
-                    WarehouseViewModel view = service.GetElement(id.Value);
-                    if (view != null)
+                    var response = ClientAPI.GetRequest("api/Warehouse/Get/" + id.Value);
+                    if (response.Result.IsSuccessStatusCode)
                     {
-                        textBoxName.Text = view.WarehouseName;
-                        dataGridView.DataSource = view.WarehouseIngredients;
+                        var stock = ClientAPI.GetElement<WarehouseViewModel>(response);
+                        textBoxName.Text = stock.WarehouseName;
+                        dataGridView.DataSource = stock.WarehouseIngredients;
                         dataGridView.Columns[0].Visible = false;
                         dataGridView.Columns[1].Visible = false;
                         dataGridView.Columns[2].Visible = false;
                         dataGridView.Columns[3].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+                    }
+                    else
+                    {
+                        throw new Exception(ClientAPI.GetError(response));
                     }
                 }
                 catch (Exception ex)
@@ -58,9 +56,10 @@ namespace CandyShopView
             }
             try
             {
+                Task<HttpResponseMessage> response;
                 if (id.HasValue)
                 {
-                    service.UpdElement(new WarehouseBindingModel
+                    response = ClientAPI.PostRequest("api/Warehouse/UpdElement", new WarehouseBindingModel
                     {
                         Id = id.Value,
                         WarehouseName = textBoxName.Text
@@ -68,14 +67,21 @@ namespace CandyShopView
                 }
                 else
                 {
-                    service.AddElement(new WarehouseBindingModel
+                    response = ClientAPI.PostRequest("api/Warehouse/AddElement", new WarehouseBindingModel
                     {
                         WarehouseName = textBoxName.Text
                     });
                 }
-                MessageBox.Show("Сохранение прошло успешно", "Сообщение", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                DialogResult = DialogResult.OK;
-                Close();
+                if (response.Result.IsSuccessStatusCode)
+                {
+                    MessageBox.Show("Сохранение прошло успешно", "Сообщение", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    DialogResult = DialogResult.OK;
+                    Close();
+                }
+                else
+                {
+                    throw new Exception(ClientAPI.GetError(response));
+                }
             }
             catch (Exception ex)
             {

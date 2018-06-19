@@ -1,28 +1,22 @@
 ﻿using CandyShopService.BindingModels;
-using CandyShopService.Interfaces;
 using CandyShopService.ViewModels;
 using System;
+using System.Net.Http;
+using System.Threading.Tasks;
 using System.Windows.Forms;
-using Unity;
-using Unity.Attributes;
 
 namespace CandyShopView
 {
     public partial class FormConfectioner : Form
     {
-        [Dependency]
-        public new IUnityContainer Container { get; set; }
 
         public int Id { set { id = value; } }
 
-        private readonly IConfectionerService service;
-
         private int? id;
 
-        public FormConfectioner(IConfectionerService service)
+        public FormConfectioner()
         {
             InitializeComponent();
-            this.service = service;
         }
 
         private void FormConfectioner_Load(object sender, EventArgs e)
@@ -31,10 +25,15 @@ namespace CandyShopView
             {
                 try
                 {
-                    ConfectionerViewModel view = service.GetElement(id.Value);
-                    if (view != null)
+                    var response = ClientAPI.GetRequest("api/Confectioner/Get/" + id.Value);
+                    if (response.Result.IsSuccessStatusCode)
                     {
-                        textBoxFIO.Text = view.ConfectionerFIO;
+                        var confectioner = ClientAPI.GetElement<ConfectionerViewModel>(response);
+                        textBoxFIO.Text = confectioner.ConfectionerFIO;
+                    }
+                    else
+                    {
+                        throw new Exception(ClientAPI.GetError(response));
                     }
                 }
                 catch (Exception ex)
@@ -53,9 +52,10 @@ namespace CandyShopView
             }
             try
             {
+                Task<HttpResponseMessage> response;
                 if (id.HasValue)
                 {
-                    service.UpdElement(new ConfectionerBindingModel
+                    response = ClientAPI.PostRequest("api/Confectioner/UpdElement", new ConfectionerBindingModel
                     {
                         Id = id.Value,
                         ConfectionerFIO = textBoxFIO.Text
@@ -63,14 +63,21 @@ namespace CandyShopView
                 }
                 else
                 {
-                    service.AddElement(new ConfectionerBindingModel
+                    response = ClientAPI.PostRequest("api/Confectioner/AddElement", new ConfectionerBindingModel
                     {
                         ConfectionerFIO = textBoxFIO.Text
                     });
                 }
-                MessageBox.Show("Сохранение прошло успешно", "Сообщение", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                DialogResult = DialogResult.OK;
-                Close();
+                if (response.Result.IsSuccessStatusCode)
+                {
+                    MessageBox.Show("Сохранение прошло успешно", "Сообщение", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    DialogResult = DialogResult.OK;
+                    Close();
+                }
+                else
+                {
+                    throw new Exception(ClientAPI.GetError(response));
+                }
             }
             catch (Exception ex)
             {
