@@ -1,6 +1,7 @@
 ﻿using CandyShopService.Interfaces;
 using CandyShopService;
 using CandyShopService.ImplementationsBD;
+using CandyShopService.ImplementationsList;
 using System;
 using System.Data.Entity;
 using System.Windows.Forms;
@@ -34,6 +35,7 @@ namespace CandyShopView
             currentContainer.RegisterType<ICandyService, CandyServiceBD>(new HierarchicalLifetimeManager());
             currentContainer.RegisterType<IWarehouseService, WarehouseServiceBD>(new HierarchicalLifetimeManager());
             currentContainer.RegisterType<IMainService, MainServiceBD>(new HierarchicalLifetimeManager());
+            currentContainer.RegisterType<IReportService, ReportServiceBD>(new HierarchicalLifetimeManager());
 
             return currentContainer;
         }
