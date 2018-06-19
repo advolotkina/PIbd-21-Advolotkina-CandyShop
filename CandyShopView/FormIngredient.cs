@@ -25,19 +25,15 @@ namespace CandyShopView
             {
                 try
                 {
-                    var response = ClientAPI.GetRequest("api/Ingredient/Get/" + id.Value);
-                    if (response.Result.IsSuccessStatusCode)
-                    {
-                        var ingredient = ClientAPI.GetElement<IngredientViewModel>(response);
-                        textBoxName.Text = ingredient.IngredientName;
-                    }
-                    else
-                    {
-                        throw new Exception(ClientAPI.GetError(response));
-                    }
+                    var ingredient = Task.Run(() => ClientAPI.GetRequestData<IngredientViewModel>("api/Ingredient/Get/" + id.Value)).Result;
+                    textBoxName.Text = ingredient.IngredientName;
                 }
                 catch (Exception ex)
                 {
+                    while (ex.InnerException != null)
+                    {
+                        ex = ex.InnerException;
+                    }
                     MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -50,44 +46,41 @@ namespace CandyShopView
                 MessageBox.Show("Заполните название", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-            try
+            string name = textBoxName.Text;
+            Task task;
+            if (id.HasValue)
             {
-                Task<HttpResponseMessage> response;
-                if (id.HasValue)
+                task = Task.Run(() => ClientAPI.PostRequestData("api/Ingredient/UpdElement", new IngredientBindingModel
                 {
-                    response = ClientAPI.PostRequest("api/Ingredient/UpdElement", new IngredientBindingModel
-                    {
-                        Id = id.Value,
-                        IngredientName = textBoxName.Text
-                    });
-                }
-                else
-                {
-                    response = ClientAPI.PostRequest("api/Ingredient/AddElement", new IngredientBindingModel
-                    {
-                        IngredientName = textBoxName.Text
-                    });
-                }
-                if (response.Result.IsSuccessStatusCode)
-                {
-                    MessageBox.Show("Сохранение прошло успешно", "Сообщение", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    DialogResult = DialogResult.OK;
-                    Close();
-                }
-                else
-                {
-                    throw new Exception(ClientAPI.GetError(response));
-                }
+                    Id = id.Value,
+                    IngredientName = name
+                }));
             }
-            catch (Exception ex)
+            else
             {
+                task = Task.Run(() => ClientAPI.PostRequestData("api/Ingredient/AddElement", new IngredientBindingModel
+                {
+                    IngredientName = name
+                }));
+            }
+
+            task.ContinueWith((prevTask) => MessageBox.Show("Сохранение прошло успешно. Обновите список", "Сообщение", MessageBoxButtons.OK, MessageBoxIcon.Information),
+                TaskContinuationOptions.OnlyOnRanToCompletion);
+            task.ContinueWith((prevTask) =>
+            {
+                var ex = (Exception)prevTask.Exception;
+                while (ex.InnerException != null)
+                {
+                    ex = ex.InnerException;
+                }
                 MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            }, TaskContinuationOptions.OnlyOnFaulted);
+
+            Close();
         }
 
         private void buttonCancel_Click(object sender, EventArgs e)
         {
-            DialogResult = DialogResult.Cancel;
             Close();
         }
     }

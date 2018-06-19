@@ -1,6 +1,7 @@
 ﻿using CandyShopService.ViewModels;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace CandyShopView
@@ -21,21 +22,17 @@ namespace CandyShopView
         {
             try
             {
-                var response = ClientAPI.GetRequest("api/Ingredient/GetList");
-                if (response.Result.IsSuccessStatusCode)
-                {
-                    comboBoxComponent.DisplayMember = "IngredientName";
-                    comboBoxComponent.ValueMember = "Id";
-                    comboBoxComponent.DataSource = ClientAPI.GetElement<List<IngredientViewModel>>(response);
-                    comboBoxComponent.SelectedItem = null;
-                }
-                else
-                {
-                    throw new Exception(ClientAPI.GetError(response));
-                }
+                comboBoxComponent.DisplayMember = "IngredientName";
+                comboBoxComponent.ValueMember = "Id";
+                comboBoxComponent.DataSource = Task.Run(() => ClientAPI.GetRequestData<List<IngredientViewModel>>("api/Ingredient/GetList")).Result;
+                comboBoxComponent.SelectedItem = null;
             }
             catch (Exception ex)
             {
+                while (ex.InnerException != null)
+                {
+                    ex = ex.InnerException;
+                }
                 MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             if (model != null)
