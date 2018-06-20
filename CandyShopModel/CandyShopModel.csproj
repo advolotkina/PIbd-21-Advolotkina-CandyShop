@@ -69,6 +69,7 @@
     <Compile Include="Customer.cs" />
     <Compile Include="Ingredient.cs" />
     <Compile Include="Confectioner.cs" />
+    <Compile Include="MessageInfo.cs" />
     <Compile Include="PurchaseOrder.cs" />
     <Compile Include="PurchaseOrderStatus.cs" />
     <Compile Include="Candy.cs" />

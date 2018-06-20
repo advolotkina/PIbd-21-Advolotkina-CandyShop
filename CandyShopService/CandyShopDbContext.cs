@@ -6,7 +6,7 @@ namespace CandyShopService
 {
     public class CandyShopDbContext: DbContext
     {
-        public CandyShopDbContext() : base("CandyShopDatabase")
+        public CandyShopDbContext() : base("CandyShopDatabase_")
         {
             Configuration.ProxyCreationEnabled = false;
             Configuration.LazyLoadingEnabled = false;
@@ -28,6 +28,8 @@ namespace CandyShopService
         public virtual DbSet<Warehouse> Warehouses { get; set; }
 
         public virtual DbSet<WarehouseIngredient> WarehouseIngredients { get; set; }
+
+        public virtual DbSet<MessageInfo> MessageInfos { get; set; }
 
         public override int SaveChanges()
         {

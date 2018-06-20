@@ -49,9 +49,16 @@ namespace CandyShopView
             if (!response.IsSuccessStatusCode)
             {
                 string error = response.Content.ReadAsStringAsync().Result;
-                var errorMessage = JsonConvert.DeserializeObject<HttpErrorMessage>(error);
-                throw new Exception(errorMessage.Message + " " + (errorMessage.MessageDetail ?? "") +
+                try
+                {
+                    var errorMessage = JsonConvert.DeserializeObject<HttpErrorMessage>(error);
+                    throw new Exception(errorMessage.Message + " " + (errorMessage.MessageDetail ?? "") +
                     " " + (errorMessage.ExceptionMessage ?? ""));
+                }
+                catch(Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
             }
         }
 
