@@ -1,4 +1,5 @@
-﻿using CandyShopService.BindingModels;
+﻿using CandyShopService;
+using CandyShopService.BindingModels;
 using CandyShopService.Interfaces;
 using System;
 using System.Web.Http;
@@ -53,6 +54,18 @@ namespace CandyShopRestApi.Controllers
         public void PutIngredientOnStock(WarehouseIngredientBindingModel model)
         {
             _service.PutIngredientOnStock(model);
+        }
+
+        [HttpGet]
+        public IHttpActionResult GetInfo()
+        {
+            ReflectionService service = new ReflectionService();
+            var list = service.GetInfoByAssembly();
+            if (list == null)
+            {
+                InternalServerError(new Exception("Нет данных"));
+            }
+            return Ok(list);
         }
     }
 }
