@@ -106,6 +106,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Attributes\CustomInterfaceAttribute.cs" />
+    <Compile Include="Attributes\CustomMethodAttribute.cs" />
     <Compile Include="BindingModels\CustomerBindingModel.cs" />
     <Compile Include="BindingModels\IngredientBindingModel.cs" />
     <Compile Include="BindingModels\ConfectionerBindingModel.cs" />
@@ -151,6 +153,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="ReflectionService.cs" />
     <Compile Include="ViewModels\CustomerOrdersViewModel.cs" />
     <Compile Include="ViewModels\CustomerViewModel.cs" />
     <Compile Include="ViewModels\IngredientViewModel.cs" />
