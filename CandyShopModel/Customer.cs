@@ -13,5 +13,10 @@ namespace CandyShopModel
 
         [ForeignKey("CustomerId")]
         public virtual List<PurchaseOrder> Orders { get; set; }
+
+        public string Mail { get; set; }
+
+        [ForeignKey("CustomerId")]
+        public virtual List<MessageInfo> MessageInfos { get; set; }
     }
 }

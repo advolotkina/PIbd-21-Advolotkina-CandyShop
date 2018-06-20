@@ -18,7 +18,8 @@ namespace CandyShopView
         {
             try
             {
-                List<IngredientViewModel> listC = Task.Run(() => ClientAPI.GetRequestData<List<IngredientViewModel>>("api/Ingredient/GetList")).Result;
+                List<IngredientViewModel> listC = Task.Run(() => 
+                ClientAPI.GetRequestData<List<IngredientViewModel>>("api/Ingredient/GetList")).Result;
                 if (listC != null)
                 {
                     comboBoxComponent.DisplayMember = "IngredientName";

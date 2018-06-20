@@ -7,6 +7,9 @@ using System.Collections.Generic;
 using System.Data.Entity;
 using System.Data.Entity.SqlServer;
 using System.Linq;
+using System.Net.Mail;
+using System.Net;
+using System.Configuration;
 
 namespace CandyShopService.ImplementationsBD
 {
@@ -21,7 +24,7 @@ namespace CandyShopService.ImplementationsBD
 
         public void CreatePurchaseOrder(PurchaseOrderBindingModel model)
         {
-            context.PurchaseOrders.Add(new PurchaseOrder
+            var order = new PurchaseOrder
             {
                 CustomerId = model.CustomerId,
                 CandyId = model.CandyId,
@@ -29,19 +32,28 @@ namespace CandyShopService.ImplementationsBD
                 Count = model.Count,
                 Sum = model.Sum,
                 Status = PurchaseOrderStatus.Принят
-            });
+            };
+            context.PurchaseOrders.Add(order);
             context.SaveChanges();
+
+            var customer = context.Customers.FirstOrDefault(x => x.Id == model.CustomerId);
+            SendEmail(customer.Mail, "Оповещение по заказам",
+            string.Format("Заказ №{0} от {1} создан успешно", order.Id,
+            order.DateCreate.ToShortDateString()));
         }
 
         public void FinishPurchaseOrder(int id)
         {
-            PurchaseOrder element = context.PurchaseOrders.FirstOrDefault(rec => rec.Id == id);
+            PurchaseOrder element = context.PurchaseOrders.Include(rec => rec.Customer).FirstOrDefault(rec => rec.Id == id);
             if (element == null)
             {
                 throw new Exception("Элемент не найден");
             }
             element.Status = PurchaseOrderStatus.Готов;
             context.SaveChanges();
+            SendEmail(element.Customer.Mail, "Оповещение по заказам",
+            string.Format("Заказ №{0} от {1} передан на оплату", element.Id,
+                element.DateCreate.ToShortDateString()));
         }
 
         public List<PurchaseOrderViewModel> GetList()
@@ -73,13 +85,15 @@ namespace CandyShopService.ImplementationsBD
 
         public void PayPurchaseOrder(int id)
         {
-            PurchaseOrder element = context.PurchaseOrders.FirstOrDefault(rec => rec.Id == id);
+            PurchaseOrder element = context.PurchaseOrders.Include(rec => rec.Customer).FirstOrDefault(rec => rec.Id == id);
             if (element == null)
             {
                 throw new Exception("Элемент не найден");
             }
             element.Status = PurchaseOrderStatus.Оплачен;
             context.SaveChanges();
+            SendEmail(element.Customer.Mail, "Оповещение по заказам",
+                string.Format("Заказ №{0} от {1} оплачен успешно", element.Id, element.DateCreate.ToShortDateString()));
         }
 
         public void PutIngredientOnStock(WarehouseIngredientBindingModel model)
@@ -109,8 +123,7 @@ namespace CandyShopService.ImplementationsBD
             {
                 try
                 {
-
-                    PurchaseOrder element = context.PurchaseOrders.FirstOrDefault(rec => rec.Id == model.Id);
+                    PurchaseOrder element = context.PurchaseOrders.Include(rec => rec.Customer).FirstOrDefault(rec => rec.Id == model.Id);
                     if (element == null)
                     {
                         throw new Exception("Элемент не найден");
@@ -152,6 +165,8 @@ namespace CandyShopService.ImplementationsBD
                     element.DateImplement = DateTime.Now;
                     element.Status = PurchaseOrderStatus.Выполняется;
                     context.SaveChanges();
+                    SendEmail(element.Customer.Mail, "Оповещение по заказам",
+                        string.Format("Заказ №{0} от {1} передеан в работу", element.Id, element.DateCreate.ToShortDateString()));
                     transaction.Commit();
                 }
                 catch (Exception)
@@ -159,6 +174,40 @@ namespace CandyShopService.ImplementationsBD
                     transaction.Rollback();
                     throw;
                 }
+            }
+        }
+
+        private void SendEmail(string mailAddress, string subject, string text)
+        {
+            MailMessage objMailMessage = new MailMessage();
+            SmtpClient objSmtpClient = null;
+
+            try
+            {
+                objMailMessage.From = new MailAddress(ConfigurationManager.AppSettings["MailLogin"]);
+                objMailMessage.To.Add(new MailAddress(mailAddress));
+                objMailMessage.Subject = subject;
+                objMailMessage.Body = text;
+                objMailMessage.SubjectEncoding = System.Text.Encoding.UTF8;
+                objMailMessage.BodyEncoding = System.Text.Encoding.UTF8;
+
+                objSmtpClient = new SmtpClient("smtp.gmail.com", 587);
+                objSmtpClient.UseDefaultCredentials = false;
+                objSmtpClient.EnableSsl = true;
+                objSmtpClient.DeliveryMethod = SmtpDeliveryMethod.Network;
+                objSmtpClient.Credentials = new NetworkCredential(ConfigurationManager.AppSettings["MailLogin"],
+                    ConfigurationManager.AppSettings["MailPassword"]);
+
+                objSmtpClient.Send(objMailMessage);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            finally
+            {
+                objMailMessage = null;
+                objSmtpClient = null;
             }
         }
     }
